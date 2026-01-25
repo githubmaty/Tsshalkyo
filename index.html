@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Transliterador</title>
+
+<style>
+  body {
+    background:#0e0e0e;
+    color:#eee;
+    font-family: monospace;
+    padding:20px;
+  }
+  textarea {
+    width:100%;
+    height:220px;
+    background:#000;
+    color:#0f0;
+    border:1px solid #444;
+    padding:10px;
+    font-size:16px;
+  }
+  #list {
+  margin-top: 15px;
+  padding: 10px;
+  border: 1px solid #333;
+  min-height: 60px;
+}
+
+#list li {
+  padding: 4px 6px;
+  border-bottom: 1px dashed #333;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🧾 Transliterador</h2>
+<p>
+Y / ' / '' y la secuencia <b>Тç</b> usan <b>TAB</b><br>
+vocal&lt; = acento (respeta mayúsculas)
+</p>
+
+<textarea id="txt" placeholder="Escribe aquí..."></textarea>
+
+<hr>
+
+<h2>📘 Diccionario Shalkio</h2>
+
+<div id="letters"></div>
+
+<h3 id="currentLetter">Letra: A</h3>
+
+<input id="word" placeholder="Palabra">
+<input id="meaning" placeholder="Significado">
+<textarea id="notes" placeholder="Notas (opcional)"></textarea>
+
+<button id="add">➕ Agregar palabra</button>
+<button id="exportTxt">💾 Exportar TXT</button>
+<button id="exportJson">💾 Exportar JSON</button>
+<input type="file" id="importFile" accept=".txt,.json">
+
+<input id="search" placeholder="🔍 Buscar en el diccionario">
+<ul id="list"></ul>
+
+<script>
+const searchInput = document.getElementById("search");
+const txt = document.getElementById("txt");
+
+/* ================= TRANSLITERACIÓN ================= */
+
+const dict = {
+  // MAYÚSCULAS
+  "Ch":"Ч","Зh":"Ж","Кh":"Х'","Çch":"Щ",
+  "G'":"Ґ","Ye":"Е","Yo":"Ё","Çh":"Ш",
+  "Ya":"Я","Yu":"Ю","Y'":"Ы",
+
+  "A":"А","B":"Б","V":"В","G":"Г","D":"Д",
+  "K":"К","T":"Т","J":"Х","F":"Ф","L":"Л",
+  "M":"М","N":"Н","O":"О","P":"П","R":"Р",
+  
+  "S":"Ç","U":"У","Z":"З","I":"И","E":"Э",
+  // MINÚSCULAS
+  "ch":"ч","зh":"ж","кh":"х'","çch":"щ",
+  "g'":"ґ","ye":"е","yo":"ё","ts":"с",
+  "ya":"я","yu":"ю","y'":"ы","çh":"ш",
+
+  "a":"а","b":"б","v":"в","g":"г","d":"д",
+  "k":"к","t":"т","j":"х","f":"ф","l":"л",
+  "m":"м","n":"н","o":"о","p":"п","r":"р",
+  "s":"ç","u":"у","z":"з","i":"и","e":"э"
+};
+
+const keys = Object.keys(dict).sort((a,b)=>b.length-a.length);
+
+/* ================= ACENTOS REALES ================= */
+
+const ACCENT = "\u0301";
+
+const acentos = {
+  "а":"а́","э":"э́","и":"и́","о":"о́","у":"у́","я":"я́","е":"е́","ю":"ю́","ы":"ы́",
+  "А":"Á","Э":"Э´","И":"И´","О":"О´","У":"У´","Я":"Я´","Е":"Е´","Ю":"Ю´","Ы":"Ы´"
+};
+
+/* ================= INPUT ================= */
+
+txt.addEventListener("input", () => {
+  let v = txt.value;
+
+  // 1️⃣ transliterar
+  for (const k of keys) {
+    v = v.replaceAll(k, dict[k]);
+  }
+
+  // 2️⃣ acentos con <
+  v = v.replace(/([АЭИОУЯЕЮЫаеиоуяюыэ])</g, (m, l) =>
+    acentos[l] ?? l
+  );
+
+  txt.value = v;
+});
+
+/* ================= TAB ESPECIAL ================= */
+
+txt.addEventListener("keydown", (e) => {
+  if (e.key !== "Tab") return;
+
+  e.preventDefault();
+  let pos = txt.selectionStart;
+  let text = txt.value;
+
+  if (text.slice(pos-2, pos) === "Г") {
+    txt.value = text.slice(0,pos-2) + "Ґ" + text.slice(pos);
+    txt.selectionStart = txt.selectionEnd = pos;
+    return;
+  }
+  
+  if (text.slice(pos-2, pos) === "г") {
+    txt.value = text.slice(0,pos-2) + "ґ" + text.slice(pos);
+    txt.selectionStart = txt.selectionEnd = pos;
+    return;
+  }
+  
+  if (text.slice(pos-2, pos) === "Тç") {
+    txt.value = text.slice(0,pos-2) + "С" + text.slice(pos);
+    txt.selectionStart = txt.selectionEnd = pos-1;
+    return;
+  }
+
+  if (text.slice(pos-2, pos) === "тç") {
+    txt.value = text.slice(0,pos-2) + "с" + text.slice(pos);
+    txt.selectionStart = txt.selectionEnd = pos-1;
+    return;
+  }
+
+  if (text.slice(pos-2, pos) === "''") {
+    txt.value = text.slice(0,pos-2) + "ъ" + text.slice(pos);
+    txt.selectionStart = txt.selectionEnd = pos-1;
+    return;
+  }
+
+  if (text[pos-1] === "'") {
+    txt.value = text.slice(0,pos-1) + "ь" + text.slice(pos);
+    txt.selectionStart = txt.selectionEnd = pos;
+    return;
+  }
+
+  if (text[pos-1] === "Y") {
+    txt.value = text.slice(0,pos-1) + "Й" + text.slice(pos);
+    txt.selectionStart = txt.selectionEnd = pos;
+    return;
+  }
+
+  if (text[pos-1] === "y") {
+    txt.value = text.slice(0,pos-1) + "й" + text.slice(pos);
+    txt.selectionStart = txt.selectionEnd = pos;
+    return;
+  }
+});
+/* ================= DICCIONARIO ================= */
+
+const alphabet = [
+  "А","Б","В","Г","Ґ","Е","Ё","С","Д","К","Х'","Х","Ф","Л","М","Н",
+  "О","П","Р","С'","Т","У","З","Ж","И","Й","Ы","Я","Ю",
+  "Ч","Ш","Щ","Э"
+];
+const lettersDiv = document.getElementById("letters");
+const list = document.getElementById("list");
+
+const wordInput = document.getElementById("word");
+const meaningInput = document.getElementById("meaning");
+const notesInput = document.getElementById("notes");
+
+let dictionary = JSON.parse(localStorage.getItem("shalkioDict")) || {};
+
+// 🧹 eliminar claves que NO estén en el alfabeto del idioma
+for (const key in dictionary) {
+  if (!alphabet.includes(key)) {
+    delete dictionary[key];
+  }
+}
+localStorage.setItem("shalkioDict", JSON.stringify(dictionary));
+
+// inicialización segura
+alphabet.forEach(l => {
+  if (!Array.isArray(dictionary[l])) dictionary[l] = [];
+});
+
+let current = alphabet[0];
+
+// botones de letras
+alphabet.forEach(l => {
+  const b = document.createElement("button");
+  b.textContent = l;
+  b.onclick = () => loadLetter(l);
+  lettersDiv.appendChild(b);
+});
+
+function loadLetter(l) {
+  current = l;
+  document.getElementById("currentLetter").textContent = "Letra: " + l;
+  render();
+}
+
+function render() {
+  list.innerHTML = "";
+
+  const query = searchInput.value.toLowerCase();
+  let entries = dictionary[current] || [];
+
+  // ordenar siempre
+  entries.sort((a, b) => a.word.localeCompare(b.word, "ru"));
+
+  // filtrar por búsqueda
+  if (query) {
+    entries = entries.filter(e =>
+      e.word.toLowerCase().includes(query) ||
+      e.meaning.toLowerCase().includes(query) ||
+      (e.notes && e.notes.toLowerCase().includes(query))
+    );
+  }
+
+  if (entries.length === 0) {
+    const li = document.createElement("li");
+    li.style.opacity = "0.5";
+    li.textContent = query
+      ? "— sin coincidencias —"
+      : "— sin palabras aún —";
+    list.appendChild(li);
+    return;
+  }
+
+  entries.forEach(e => {
+    const realIndex = dictionary[current].indexOf(e);
+
+    const li = document.createElement("li");
+
+    const content = document.createElement("span");
+    content.innerHTML =
+      `<b>${e.word}</b> — ${e.meaning}` +
+      (e.notes ? ` <i>(${e.notes})</i>` : "");
+
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "✏️";
+    editBtn.style.marginLeft = "8px";
+    editBtn.onclick = () => editEntry(realIndex);
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "🗑️";
+    delBtn.style.marginLeft = "4px";
+    delBtn.onclick = () => {
+      if (!confirm("¿Eliminar esta palabra?")) return;
+      dictionary[current].splice(realIndex, 1);
+      render();
+    };
+
+    li.append(content, editBtn, delBtn);
+    list.appendChild(li);
+  });
+
+  localStorage.setItem("shalkioDict", JSON.stringify(dictionary));
+}
+
+
+function editEntry(index) {
+  const entry = dictionary[current][index];
+  list.innerHTML = "";
+
+  dictionary[current].forEach((e, i) => {
+    const li = document.createElement("li");
+
+    if (i === index) {
+      const w = document.createElement("input");
+      w.value = e.word;
+
+      const m = document.createElement("input");
+      m.value = e.meaning;
+
+      const n = document.createElement("input");
+      n.value = e.notes || "";
+
+      const save = document.createElement("button");
+      save.textContent = "💾";
+
+      const cancel = document.createElement("button");
+      cancel.textContent = "❌";
+
+      save.onclick = () => {
+        if (!w.value.trim() || !m.value.trim()) return;
+        entry.word = w.value.trim();
+        entry.meaning = m.value.trim();
+        entry.notes = n.value.trim();
+        render();
+      };
+
+      cancel.onclick = render;
+
+      li.append(w, m, n, save, cancel);
+    } else {
+      li.innerHTML = `<b>${e.word}</b> — ${e.meaning}` +
+        (e.notes ? ` <i>(${e.notes})</i>` : "");
+    }
+
+    list.appendChild(li);
+  });
+}
+
+document.getElementById("add").onclick = () => {
+  const word = wordInput.value.trim();
+  const meaning = meaningInput.value.trim();
+  const notes = notesInput.value.trim();
+  if (!word || !meaning) return;
+
+  dictionary[current].push({ word, meaning, notes });
+  wordInput.value = meaningInput.value = notesInput.value = "";
+  render();
+};
+
+// cargar inicial
+loadLetter(alphabet[0]);
+
+document.getElementById("exportTxt").onclick = () => {
+  let out = "Diccionario Shalkio\n\n";
+
+  for (const l of alphabet) {
+    if (!dictionary[l].length) continue;
+    out += `# ${l}\n`;
+    dictionary[l].forEach(e => {
+      out += `${e.word} = ${e.meaning}`;
+      if (e.notes) out += ` (${e.notes})`;
+      out += "\n";
+    });
+    out += "\n";
+  }
+
+  downloadFile(out, "Diccionario_Shalkio.txt", "text/plain");
+};
+
+document.getElementById("exportJson").onclick = () => {
+  const data = JSON.stringify(dictionary, null, 2);
+  downloadFile(data, "Diccionario_Shalkio.json", "application/json");
+};
+
+document.getElementById("importFile").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (file.name.endsWith(".json")) {
+      importJSON(reader.result);
+    } else {
+      importTXT(reader.result);
+    }
+    render();
+  };
+  reader.readAsText(file, "UTF-8");
+});
+
+function importJSON(text) {
+  try {
+    const data = JSON.parse(text);
+    for (const l of alphabet) {
+      if (Array.isArray(data[l])) {
+        dictionary[l].push(...data[l]);
+      }
+    }
+    localStorage.setItem("shalkioDict", JSON.stringify(dictionary));
+  } catch {
+    alert("JSON inválido");
+  }
+}
+
+function importTXT(text) {
+  let currentLetter = null;
+  const lines = text.split(/\r?\n/);
+
+  lines.forEach(line => {
+    line = line.trim();
+    if (!line) return;
+
+    if (line.startsWith("#")) {
+      const l = line.replace("#","").trim();
+      if (alphabet.includes(l)) currentLetter = l;
+      return;
+    }
+
+    if (!currentLetter) return;
+
+    const match = line.match(/^(.+?)\s*=\s*(.+?)(?:\s*\((.+)\))?$/);
+    if (!match) return;
+
+    const [, word, meaning, notes] = match;
+    dictionary[currentLetter].push({
+      word: word.trim(),
+      meaning: meaning.trim(),
+      notes: notes?.trim() || ""
+    });
+  });
+
+  localStorage.setItem("shalkioDict", JSON.stringify(dictionary));
+}
+
+function downloadFile(content, name, type) {
+  const blob = new Blob([content], { type });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+}
+searchInput.addEventListener("input", render);
+</script>
+
+</body>
+</html>
