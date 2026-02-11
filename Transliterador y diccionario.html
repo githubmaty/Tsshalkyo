@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transliterador y Diccionario Shalkio</title>
+
+<style>
+  body {
+    background:#0e0e0e;
+    color:#eee;
+    font-family: monospace;
+    padding:20px;
+    padding-top: 64px;
+    animation: fadeInPage 0.4s ease-out;
+  }
+  
+  @keyframes fadeInPage {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  textarea {
+    width:100%;
+    height:220px;
+    background:#000;
+    color:#0f0;
+    border:1px solid #444;
+    padding:10px;
+    font-size:16px;
+    box-sizing: border-box;
+    outline: none;
+  }
+
+  #navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 44px;
+    background: #111;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    z-index: 1000;
+  }
+
+  #navbar a {
+    color: #0f0;
+    text-decoration: none;
+    margin-right: 16px;
+    font-size: 14px;
+  }
+
+  #navbar a:hover { text-decoration: underline; }
+
+  #list {
+    margin-top: 15px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .entry-card {
+    background: #151515;
+    border: 1px solid #333;
+    padding: 15px;
+    margin-bottom: 8px;
+    border-left: 4px solid #0f0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .shalkio-word { font-size: 1.4em; color: #0f0; font-weight: bold; }
+  .meaning-text { color: #fff; margin-left: 12px; font-size: 1.1em; }
+  .notes-text { color: #888; font-size: 0.9em; margin-top: 5px; font-style: italic; }
+
+  #letters { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 20px; }
+  #letters button {
+    background: #222;
+    color: #0f0;
+    border: 1px solid #444;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: monospace;
+  }
+
+  #letters button:hover { background: #0f0; color: #000; }
+  .active-btn { background: #0f0 !important; color: #000 !important; font-weight: bold; }
+
+  h2 { color: #0f0; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+  
+  .import-box {
+    background: #1a1a1a;
+    padding: 15px;
+    border: 1px solid #0f0;
+    margin: 10px 0;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="navbar">
+    <a href="Index.html">💬 Inicio</a>
+    <a href="Transliterador y diccionario.html">📘 Diccionario</a>
+    <a href="Gramatica.html">📐 Gramática</a>
+    <a href="lore.html">📜 Lore</a>
+</div>
+
+<h2>🧾 Transliterador</h2>
+<p>Usa <b>&lt;</b> para acento (respeta mayúsculas)</p>
+<textarea id="txt" placeholder="Escribe aquí..."></textarea>
+
+<hr>
+
+<h2>📘 Diccionario Shalkio</h2>
+
+<div class="import-box">
+  <label>📂 Cargar Diccionario (.json): </label>
+  <input type="file" id="importFile" accept=".json">
+</div>
+
+<div id="letters"></div>
+<h3 id="currentLetter">Letra: А</h3>
+
+<input id="search" placeholder="🔍 Buscar palabra o significado (Buscador Inteligente)..." style="width:100%; padding:12px; background:#000; color:#0f0; border:1px solid #444; font-family: monospace; outline: none;">
+<ul id="list"></ul>
+
+<script>
+/* ================= VARIABLES Y CONFIGURACIÓN ================= */
+let dictionary = {};
+const alphabet = ["А","Б","В","Г","Ґ","Е","Ё","С","Д","К","Х'","Х","Ф","Л","М","Н","О","П","Р","С'","Т","У","З","Ж","И","Й","Ы","Я","Ю","Ч","Ш","Щ","Э","Ç"];
+let current = "А";
+
+const trans = {
+  "Ch":"Ч","Зh":"Ж","Кh":"Х'","Çch":"Щ","G'":"Ґ","Ye":"Е","Yo":"Ё","Çh":"Ш","Ya":"Я","Yu":"Ю","Y'":"Ы",
+  "A":"А","B":"Б","V":"В","G":"Г","D":"Д","K":"К","T":"Т","J":"Х","F":"Ф","L":"Л","M":"М","N":"Н","O":"О","P":"П",
+  "R":"Р","S":"Ç","U":"У","Z":"З","I":"И","E":"Э","ch":"ч","зh":"ж","кh":"х'","çch":"щ","g'":"ґ",
+  "ye":"е","yo":"ё","ya":"я","yu":"ю","y'":"ы","çh":"ш","a":"а","b":"б","v":"в","g":"г","d":"д","k":"к","t":"т",
+  "j":"х","f":"ф","l":"л","m":"м","n":"н","o":"о","p":"п","r":"р","s":"ç","u":"у","z":"з","i":"и","e":"э"
+};
+const transKeys = Object.keys(trans).sort((a,b)=>b.length-a.length);
+const acentos = { "а":"а́","э":"э́","и":"и́","о":"о́","у":"у́","я":"я́","е":"е́","ю":"ю́","ы":"ы́" };
+
+/* ================= CARGA DE DATOS ================= */
+function loadDictionary() {
+    try {
+        const rawData = localStorage.getItem("shalkioDict");
+        if (rawData) {
+            dictionary = JSON.parse(rawData);
+        }
+        // Asegurar estructura
+        alphabet.forEach(l => { if(!Array.isArray(dictionary[l])) dictionary[l]=[]; });
+    } catch (e) {
+        console.error("Error JSON:", e);
+        dictionary = {};
+        alphabet.forEach(l => { dictionary[l]=[]; });
+    }
+}
+
+/* ================= TRANSLITERADOR ================= */
+const txt = document.getElementById("txt");
+txt.addEventListener("input",()=>{
+  let v = txt.value;
+  for (const k of transKeys) {
+    const safe = k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    v = v.replace(new RegExp(safe, "g"), trans[k]);
+  }
+  v = v.replace(/([аэиоуяеюы])</g, (m, l) => acentos[l] || l);
+  v = v.replace(/([АЭИОУЯЕЮЫ])</g, "$1´");
+  txt.value = v;
+});
+
+/* ================= DICCIONARIO INTERFAZ ================= */
+function createAlphabet() {
+    const div = document.getElementById("letters");
+    div.innerHTML = "";
+    alphabet.forEach(l => {
+        const b = document.createElement("button");
+        b.textContent = l;
+        b.className = (l === current) ? "active-btn" : "";
+        b.onclick = () => { current = l; createAlphabet(); render(); };
+        div.appendChild(b);
+    });
+}
+// 2. Lógica del TAB Especial (CORREGIDA)
+txt.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+
+    e.preventDefault(); // Evita que el cursor salte fuera del textarea
+    
+    const pos = txt.selectionStart;
+    const text = txt.value;
+
+    const char1 = text.slice(pos - 1, pos);
+    const char2 = text.slice(pos - 2, pos);
+
+    // Función interna para aplicar el reemplazo
+    const applyReplace = (offset, newVal) => {
+        txt.value = text.slice(0, pos - offset) + newVal + text.slice(pos);
+        // Colocamos el cursor justo después del nuevo carácter
+        txt.selectionStart = txt.selectionEnd = pos - offset + newVal.length;
+    };
+
+    // --- REGLAS DE SUSTITUCIÓN ---
+    if (char2 === "Тç") { applyReplace(2, "С"); return; }
+    if (char2 === "тç") { applyReplace(2, "с"); return; }
+    if (char2 === "''") { applyReplace(2, "ъ"); return; }
+    
+    if (char1 === "Г") { applyReplace(1, "Ґ"); return; }
+    if (char1 === "г") { applyReplace(1, "ґ"); return; }
+    if (char1 === "'") { applyReplace(1, "ь"); return; }
+    if (char1 === "Y") { applyReplace(1, "Й"); return; }
+    if (char1 === "y") { applyReplace(1, "й"); return; }
+});
+function render() {
+    const list = document.getElementById("list");
+    const indicator = document.getElementById("currentLetter");
+    let query = document.getElementById("search").value;
+
+    // Buscador Inteligente
+    for (const k of transKeys) {
+        query = query.replace(new RegExp(k, "g"), trans[k]);
+    }
+    const q = query.toLowerCase();
+
+    indicator.textContent = "Letra: " + current;
+    list.innerHTML = "";
+
+    const entries = dictionary[current] || [];
+
+    entries.forEach(e => {
+        const wordMatch = e.word.toLowerCase();
+        const meanMatch = e.meaning.toLowerCase();
+        
+        if (q && !wordMatch.includes(q) && !meanMatch.includes(q)) return;
+
+        const li = document.createElement("li");
+        li.className = "entry-card";
+        li.innerHTML = `
+            <div class="word-row">
+                <span class="shalkio-word">${e.word}</span>
+                <span class="meaning-text">— ${e.meaning}</span>
+            </div>
+            ${e.notes ? `<span class="notes-text">${e.notes}</span>` : ""}
+        `;
+        list.appendChild(li);
+    });
+}
+
+/* ================= IMPORTACIÓN ================= */
+document.getElementById("importFile").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const data = JSON.parse(reader.result);
+            dictionary = data;
+            localStorage.setItem("shalkioDict", JSON.stringify(data));
+            render();
+            alert("✅ Diccionario cargado.");
+        } catch (err) {
+            alert("❌ Archivo no válido.");
+        }
+    };
+    reader.readAsText(file, "UTF-8");
+});
+
+document.getElementById("search").addEventListener("input", render);
+
+// Iniciar todo
+loadDictionary();
+createAlphabet();
+render();
+</script>
+
+</body>
+</html>

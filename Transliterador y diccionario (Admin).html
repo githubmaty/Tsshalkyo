@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Admin - Proyecto Shalkio</title>
+<style>
+    /* ================= DISEÑO Y ANIMACIÓN ================= */
+    body {
+        background: #0e0e0e;
+        color: #eee;
+        font-family: monospace;
+        padding: 20px;
+        padding-top: 64px;
+        animation: fadeInPage 0.4s ease-out;
+    }
+
+    @keyframes fadeInPage {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    #navbar {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 44px;
+        background: #111;
+        border-bottom: 1px solid #333;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        z-index: 1000;
+    }
+
+    #navbar a { color: #0f0; text-decoration: none; margin-right: 16px; font-size: 14px; }
+    
+    /* ================= TRANSLITERADOR AGRANDADO ================= */
+    #txt {
+        width: 100%;
+        height: 220px; /* Aumentado de 220px a 350px */
+        background: #000;
+        color: #0f0;
+        border: 1px solid #444;
+        padding: 15px;
+        font-size: 18px; /* Fuente un poco más grande para mejor lectura */
+        box-sizing: border-box;
+        margin-bottom: 20px;
+        outline: none;
+    }
+    #txt:focus { border-color: #0f0; }
+
+    /* ================= PANEL DE CONTROL ================= */
+    .admin-panel {
+        background: #151515;
+        padding: 20px;
+        border: 1px solid #333;
+        margin-bottom: 20px;
+    }
+
+    input, .edit-input {
+        background: #000;
+        color: #0f0;
+        border: 1px solid #444;
+        padding: 8px;
+        font-family: monospace;
+    }
+
+    button {
+        background: #222;
+        color: #0f0;
+        border: 1px solid #0f0;
+        padding: 8px 15px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    button:hover { background: #0f0; color: #000; }
+
+    /* ================= LISTA Y EDICIÓN ================= */
+    #list { list-style: none; padding: 0; }
+    #list li {
+        padding: 10px;
+        border-bottom: 1px solid #222;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .word-info { flex-grow: 1; }
+    .edit-mode input { margin-right: 5px; width: 25%; }
+</style>
+</head>
+<body>
+
+<div id="navbar">
+    <a href="Index.html">💬 Inicio</a>
+    <a href="Transliterador y diccionario.html">📘 Diccionario</a>
+    <a href="Gramatica.html">📐 Gramática</a>
+    <a href="lore.html">📜 Lore</a>
+</div>
+
+<h2>🧾 Panel de Administrador</h2>
+
+<textarea id="txt" placeholder="Escribe aquí para transliterar..."></textarea>
+
+<div class="admin-panel">
+    <h3>📘 Gestión de Diccionario</h3>
+    <div id="letters" style="margin-bottom:15px;"></div>
+    <h4 id="currentLetter">Letra: А</h4>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <input id="word" placeholder="Palabra">
+        <input id="meaning" placeholder="Significado">
+        <input id="notes" placeholder="Notas opcionales"></input>
+    </div>
+    <br>
+    <button id="add">➕ Agregar</button>
+    <button id="exportJson">💾 Guardar JSON</button>
+    <input type="file" id="importFile" style="width: auto; border:none; background:none;">
+</div>
+
+<input id="search" placeholder="🔍 Buscar..." style="width:100%; margin-bottom:10px;">
+<ul id="list"></ul>
+
+<script>
+// --- Transliterador (Idéntico al original) ---
+const txt=document.getElementById("txt");
+const dict={"Ch":"Ч","Зh":"Ж","Кh":"Х'","Çch":"Щ","G'":"Ґ","Ye":"Е","Yo":"Ё","Çh":"Ш","Ya":"Я","Yu":"Ю","Y'":"Ы","A":"А","B":"Б","V":"В","G":"Г","D":"Д","K":"К","T":"Т","J":"Х","F":"Ф","L":"Л","M":"М","N":"Н","O":"О","P":"П","R":"Р","S":"Ç","U":"У","Z":"З","I":"И","E":"Э","ch":"ч","зh":"ж","кh":"х'","çch":"щ","g'":"ґ","ye":"е","yo":"ё","ya":"я","yu":"ю","y'":"ы","çh":"ш","a":"а","b":"б","v":"в","g":"г","d":"д","k":"к","t":"т","j":"х","f":"ф","l":"л","m":"м","n":"н","o":"о","p":"п","r":"р","s":"ç","u":"у","z":"з","i":"и","e":"э"};
+const keys=Object.keys(dict).sort((a,b)=>b.length-a.length);
+const acentos={"а":"а́","э":"э́","и":"и́","о":"о́","у":"у́","я":"я́","е":"е́","ю":"ю́","ы":"ы́"};
+
+txt.addEventListener("input",()=>{
+    let v=txt.value;
+    for(const k of keys){v=v.replace(new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"g"),dict[k]);}
+    v=v.replace(/([аэиоуяеюы])</g,(m,l)=>acentos[l]||l);
+    v=v.replace(/([АЭИОУЯЕЮЫ])</g,"$1´");
+    txt.value=v;
+});
+
+
+// --- Diccionario ---
+const alphabet=["А","Б","В","Г","Ґ","Е","Ё","С","Д","К","Х'","Х","Ф","Л","M","Н","О","П","Р","Ç","Т","У","З","Ж","И","Й","Ы","Я","Ю","Ч","Ш","Щ","Э"];
+let dictionary=JSON.parse(localStorage.getItem("shalkioDict"))||{};
+alphabet.forEach(l=>{if(!Array.isArray(dictionary[l]))dictionary[l]=[]});
+let current=alphabet[0];
+
+// 2. Lógica del TAB Especial (CORREGIDA)
+txt.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+
+    e.preventDefault(); // Evita que el cursor salte fuera del textarea
+    
+    const pos = txt.selectionStart;
+    const text = txt.value;
+
+    const char1 = text.slice(pos - 1, pos);
+    const char2 = text.slice(pos - 2, pos);
+
+    // Función interna para aplicar el reemplazo
+    const applyReplace = (offset, newVal) => {
+        txt.value = text.slice(0, pos - offset) + newVal + text.slice(pos);
+        // Colocamos el cursor justo después del nuevo carácter
+        txt.selectionStart = txt.selectionEnd = pos - offset + newVal.length;
+    };
+
+    // --- REGLAS DE SUSTITUCIÓN ---
+    if (char2 === "Тç") { applyReplace(2, "С"); return; }
+    if (char2 === "тç") { applyReplace(2, "с"); return; }
+    if (char2 === "''") { applyReplace(2, "ъ"); return; }
+    
+    if (char1 === "Г") { applyReplace(1, "Ґ"); return; }
+    if (char1 === "г") { applyReplace(1, "ґ"); return; }
+    if (char1 === "'") { applyReplace(1, "ь"); return; }
+    if (char1 === "Y") { applyReplace(1, "Й"); return; }
+    if (char1 === "y") { applyReplace(1, "й"); return; }
+});
+// Iniciar Botones
+alphabet.forEach(l=>{
+    const b=document.createElement("button");
+    b.textContent=l;
+    b.onclick=()=> { current=l; render(); };
+    document.getElementById("letters").appendChild(b);
+});
+
+function render() {
+    const list = document.getElementById("list");
+    const indicator = document.getElementById("currentLetter");
+    
+    if (indicator) indicator.textContent = "Letra Actual: " + current;
+    if (!list) return;
+
+    list.innerHTML = "";
+    
+    // Obtenemos el valor de búsqueda (si existe el input)
+    const searchInput = document.getElementById("search");
+    const q = searchInput ? searchInput.value.trim().toLowerCase() : "";
+    
+    if (!dictionary[current]) dictionary[current] = [];
+
+    dictionary[current].forEach((e, i) => {
+        // Normalizamos para que la búsqueda ignore si es Mayúscula o Minúscula
+        const wordMatch = e.word.toLowerCase().includes(q);
+        const meaningMatch = e.meaning.toLowerCase().includes(q);
+
+        // Si hay algo escrito en el buscador y no coincide, no lo mostramos
+        if (q && !wordMatch && !meaningMatch) return;
+        
+        const li = document.createElement("li");
+        li.innerHTML = `
+            <div class="word-info">
+                <b style="font-size: 1.2em; color: #0f0;">${e.word}</b> — ${e.meaning} 
+                ${e.notes ? `<br><small style="color: #888;">Nota: ${e.notes}</small>` : ""}
+            </div>
+            <div class="actions">
+                <button onclick="editMode(${i})" style="background:none; border:1px solid #444; color:#0f0; cursor:pointer; padding:5px;">✏️</button>
+                <button onclick="deleteEntry(${i})" style="background:none; border:1px solid #444; color:#f00; cursor:pointer; padding:5px;">🗑️</button>
+            </div>
+        `;
+        list.appendChild(li);
+    });
+
+    localStorage.setItem("shalkioDict", JSON.stringify(dictionary));
+}
+
+// --- FUNCIONES DE EDICIÓN ---
+function editMode(index) {
+    const entry = dictionary[current][index];
+    const li = document.getElementById("list").children[index];
+    li.classList.add("edit-mode");
+    li.innerHTML = `
+        <input class="edit-input" id="editW" value="${entry.word}">
+        <input class="edit-input" id="editM" value="${entry.meaning}">
+        <input class="edit-input" id="editN" value="${entry.notes || ""}">
+        <button onclick="saveEdit(${index})">💾</button>
+        <button onclick="render()">❌</button>
+    `;
+}
+
+function saveEdit(index) {
+    dictionary[current][index] = {
+        word: document.getElementById("editW").value,
+        meaning: document.getElementById("editM").value,
+        notes: document.getElementById("editN").value
+    };
+    render();
+}
+
+function deleteEntry(index){
+    if(confirm("¿Eliminar palabra?")){ dictionary[current].splice(index,1); render(); }
+}
+
+document.getElementById("add").onclick=()=>{
+    const w=document.getElementById("word"), m=document.getElementById("meaning"), n=document.getElementById("notes");
+    if(!w.value||!m.value)return;
+    dictionary[current].push({word:w.value, meaning:m.value, notes:n.value});
+    w.value=m.value=n.value="";
+    render();
+};
+
+// Export/Import
+document.getElementById("exportJson").onclick=()=>{
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([JSON.stringify(dictionary)],{type:"application/json"}));
+    a.download="Diccionario_Shalkio.json"; a.click();
+};
+
+document.getElementById("importFile").onchange=e=>{
+    const r=new FileReader();
+    r.onload=()=>{ dictionary=JSON.parse(r.result); render(); };
+    r.readAsText(e.target.files[0]);
+};
+
+document.getElementById("search").oninput=render;
+render();
+
+</script>
+</body>
+</html>

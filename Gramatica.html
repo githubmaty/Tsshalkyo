@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gramática y Fonética - Shalkio</title>
+    <style>
+        body {
+            background: #0e0e0e; color: #eee; font-family: monospace;
+            padding: 20px; padding-top: 64px; animation: fadeInPage 0.4s ease-out;
+        }
+        @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
+
+        #navbar {
+            position: fixed; top: 0; left: 0; right: 0; height: 44px;
+            background: #111; border-bottom: 1px solid #333;
+            display: flex; align-items: center; padding: 0 12px; z-index: 1000;
+        }
+        #navbar a { color: #0f0; text-decoration: none; margin-right: 16px; font-size: 14px; }
+
+        h2, h3 { color: #0f0; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 5px; }
+
+        /* --- TRASNLITERADOR --- */
+        #txt {
+            width: 100%; height: 200px; background: #000; color: #0f0;
+            border: 2px solid #0f0; padding: 15px; font-size: 1.2em;
+            box-sizing: border-box; outline: none; font-family: monospace;
+        }
+
+        /* --- RESULTADOS --- */
+        .grammar-results {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px; margin-top: 20px; background: #111; padding: 20px; border: 1px solid #333;
+        }
+        .res-card { background: #1a1a1a; padding: 12px; border-left: 3px solid #0f0; }
+        .label { color: #888; font-size: 0.85em; display: block; margin-bottom: 4px; }
+        .val { color: #0f0; font-size: 1.1em; font-weight: bold; word-break: break-all; }
+
+        /* --- FONÉTICA --- */
+        .phonetic-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px; margin-top: 20px;
+        }
+        .ph-item { background: #111; border: 1px solid #333; padding: 10px; text-align: center; }
+        .ph-letra { color: #0f0; font-size: 1.4em; display: block; }
+        .ph-sonido { color: #fff; font-style: italic; font-size: 0.9em; }
+
+        .rules-note { background: #1a1a00; border-left: 4px solid #ff0; padding: 15px; margin: 20px 0; }
+        .hl { color: #0f0; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="navbar">
+    <a href="Index.html">💬 Inicio</a>
+    <a href="Transliterador y diccionario.html">📘 Diccionario</a>
+    <a href="Gramatica.html">📐 Gramática</a>
+    <a href="lore.html">📜 Lore</a>
+</div>
+
+<h2>📐 Gramática y Laboratorio Fonético</h2>
+
+<div style="margin-bottom: 30px;">
+    <h3>🧪 Laboratorio de Transliteración y Análisis</h3>
+    <p>Escribe aquí para transliterar y analizar la gramática de la última palabra:</p>
+    
+    <textarea id="txt" placeholder="Escribe en Shalkio Latinizado..."></textarea>
+
+<div class="grammar-results">
+    <div class="res-card"><span class="label">Análisis de:</span><span class="val" id="wordTarget">-</span></div>
+    <div class="res-card"><span class="label">Plural:</span><span class="val" id="pluralOut">-</span></div>
+    <div class="res-card"><span class="label">Pasado:</span><span class="val" id="pasadoOut">-</span></div>
+    <div class="res-card"><span class="label">Futuro:</span><span class="val" id="futuroOut">-</span></div> </div>%ana
+</div>
+
+<h3>🔊 Alfabeto Fonético (AFI)</h3>
+<div class="phonetic-grid" id="ipaTable"></div>
+
+<h3>🔊 Reglas Fonéticas Especiales</h3>
+
+<div class="grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+    
+    <div class="card" style="background: #111; border: 1px solid #333; padding: 15px; border-top: 4px solid #0f0;">
+        <h4 style="color: #0f0; margin-top: 0;">La Regla de la "О"</h4>
+        <p>La pronunciación de la letra <span class="hl">О</span> es dinámica y depende de su entorno:</p>
+        <ul>
+            <li><b>Sonido /o/:</b> Cuando una <span class="hl">О</span> lleva tilde (marcador de vocal fuerte).</li>
+            <li><b>Sonido /a/:</b> Si en la palabra ninguna <span class="hl">О</span> está acentuada, <b>todas</b> las <span class="hl">О</span> en la palabra pasan a sonar como <span class="hl">/a/</span>.</li>
+        </ul>
+    </div>
+
+    <div class="card" style="background: #111; border: 1px solid #333; padding: 15px; border-top: 4px solid #ff0;">
+        <h4 style="color: #ff0; margin-top: 0;">Signos Fuertes y Débiles</h4>
+        
+        <p><b>Signo Fuerte (<span class="hl">ъ</span>):</b></p>
+        <ul>
+            <li>Tras consonante: Se pronuncia como <span class="hl">/j/</span>.</li>
+            <li>Tras vocal: Aumenta la intensidad (similar a un acento leve).</li>
+        </ul>
+
+        <p><b>Signo Débil (<span class="hl">ь</span>):</b></p>
+        <ul>
+            <li>Tras consonante: Palataliza la letra con cualidad <span class="hl">/i/</span>.</li>
+            <li>Tras vocal fuerte: Reduce su intensidad.</li>
+            <li>Tras vocal débil: Transforma el sonido radicalmente:
+                <table style="font-size: 0.8em; margin-top: 5px;">
+                    <tr><td>А + ь → <b>/ɒ/</b></td><td>Э + ь → <b>/ə/</b></td></tr>
+                    <tr><td>И + ь → <b>/ɨ/</b></td><td>О + ь → <b>/ɔ/</b></td></tr>
+                    <tr><td>У + ь → <b>/œ/</b></td><td></td></tr>
+                </table>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<div class="rules-note" style="background: #1a1a00; border-left: 4px solid #0f0; padding: 15px; margin-top: 20px;">
+    <p><b>Nota sobre la Escritura:</b> En el día a día, la tilde no se escribe. Solo se utiliza en el diccionario para marcar la vocal fuerte y diferenciar significados. La única excepción es la letra <span class="hl">Ё</span>, que siempre mantiene su forma.</p>
+</div>
+
+<script>
+const txt = document.getElementById("txt");
+const dict = {"Ch":"Ч","Зh":"Ж","Кh":"Х'","Çch":"Щ","G'":"Ґ","Ye":"Е","Yo":"Ё","Çh":"Ш","Ya":"Я","Yu":"Ю","Y'":"Ы","A":"А","B":"Б","V":"В","G":"Г","D":"Д","K":"К","T":"Т","J":"Х","F":"Ф","L":"Л","M":"М","N":"Н","O":"О","P":"П","R":"Р","S":"Ç","U":"У","Z":"З","I":"И","E":"Э","ch":"ч","зh":"ж","кh":"х'","çch":"щ","g'":"ґ","ye":"е","yo":"ё","ya":"я","yu":"ю","y'":"ы","çh":"ш","a":"а","b":"б","v":"в","g":"г","d":"д","k":"к","t":"т","j":"х","f":"ф","l":"л","m":"м","n":"н","o":"о","p":"п","r":"р","s":"ç","u":"у","z":"з","i":"и","e":"э"};
+const keys = Object.keys(dict).sort((a,b)=>b.length-a.length);
+
+txt.addEventListener("input", () => {
+    let v = txt.value;
+    for(const k of keys){ v = v.replace(new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"g"), dict[k]); }
+    txt.value = v;
+    analyzeGrammar(v);
+});
+
+txt.addEventListener("keydown", e => {
+    if (e.key !== "Tab") return;
+    e.preventDefault();
+    const pos = txt.selectionStart;
+    const text = txt.value;
+    const apply = (off, val) => {
+        txt.value = text.slice(0, pos-off) + val + text.slice(pos);
+        txt.selectionStart = txt.selectionEnd = pos - off + val.length;
+    };
+    const c1 = text.slice(pos-1, pos), c2 = text.slice(pos-2, pos);
+    if(c2==="Тç") return apply(2,"С"); if(c2==="тç") return apply(2,"с"); if(c2==="''") return apply(2,"ъ");
+    if(c1==="Г") return apply(1,"Ґ"); if(c1==="г") return apply(1,"ґ"); if(c1==="'") return apply(1,"ь");
+    if(c1==="Y") return apply(1,"Й"); if(c1==="y") return apply(1,"й");
+});
+
+/* ================= ANÁLISIS GRAMATICAL (SUFIJOS FIJOS) ================= */
+function analyzeGrammar(fullText) {
+    const words = fullText.trim().split(/\s+/);
+    const w = words[words.length - 1]; 
+    if(!w) {
+        clearFields();
+        return;
+    }
+
+    document.getElementById("wordTarget").textContent = w;
+
+    // --- REGLA PLURAL ---
+    let plural = (w.endsWith("я") || w.endsWith("а") || w.endsWith("Я") || w.endsWith("А")) 
+                 ? w + "ç" : w + "я";
+    document.getElementById("pluralOut").textContent = plural;
+
+    // --- REGLA PASADO ---
+    let pasado = (w.endsWith("и") || w.endsWith("й") || w.endsWith("ы") || 
+                  w.endsWith("И") || w.endsWith("Й") || w.endsWith("Ы")) 
+                 ? w + "ку" : w + "ыт";
+    document.getElementById("pasadoOut").textContent = pasado;
+
+    // --- REGLA FUTURO (NUEVA) ---
+    // Simplemente agregamos "ма" al final de la raíz
+    let futuro = w + "ма";
+    document.getElementById("futuroOut").textContent = futuro;
+}
+
+// Función auxiliar para limpiar si no hay texto
+function clearFields() {
+    ["wordTarget", "pluralOut", "pasadoOut", "futuroOut"].forEach(id => {
+        document.getElementById(id).textContent = "-";
+    });
+}
+
+const ipa = [{l:"А",s:"/a/"},{l:"Б",s:"/b/"},{l:"В",s:"/v/"},{l:"Г",s:"/g/"},{l:"Ґ",s:"/ɡʲ/"},{l:"Е",s:"/je/"},{l:"Ё",s:"/jo/"},{l:"С",s:"/ts/"},{l:"Д",s:"/d/"},{l:"К",s:"/k/"},{l:"Х'",s:"/kʰ/"},{l:"Х",s:"/x/"},{l:"Ф",s:"/f/"},{l:"Л",s:"/ɫ/"},{l:"M",s:"/m/"},{l:"Н",s:"/n/"},{l:"О",s:"/o/~/a/"},{l:"П",s:"/p/"},{l:"Р",s:"/r/"},{l:"Ç",s:"/s/"},{l:"Т",s:"/t/"},{l:"У",s:"/u/"},{l:"З",s:"/z/"},{l:"Ж",s:"/ʒ/"},{l:"И",s:"/i/"},{l:"Й",s:"/j/"},{l:"Ы",s:"/ɨ/"},{l:"Я",s:"/ja/"},{l:"Ю",s:"/ju/"},{l:"Ч",s:"/tʃ/"},{l:"Ш",s:"/ʃ/"},{l:"Щ",s:"/ɕː~/ʃtʃ//"},{l:"Э",s:"/e/"}];
+const ipaTable = document.getElementById("ipaTable");
+ipa.forEach(i => { ipaTable.innerHTML += `<div class="ph-item"><span class="ph-letra">${i.l}</span><span class="ph-sonido">${i.s}</span></div>`; });
+</script>
+</body>
+</html>
